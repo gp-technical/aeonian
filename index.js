@@ -186,7 +186,7 @@ exports.createBucket = (bucket, complete) => {
         },
         ContentMD5: ""
       };
-      s3.putBucketCors(params, function (error, data) {
+      s3.putBucketCors(params, (error, data) => {
         if (error) {
           this.error('s3.putBucketCors() Error:' + error)
         } else {
@@ -211,6 +211,7 @@ exports.uploadToBucket = (bucket, complete) => {
 
   let uploader = client.uploadDir(params)
   uploader.on('error', (error) => {
+    console.log(error)
     this.error('unable to sync:', error.stack)
   })
 
