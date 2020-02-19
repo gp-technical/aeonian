@@ -47,7 +47,7 @@ exports.config = (cfg) => {
   if (cfg.environments) {
     Object.assign(defaults.environments, cfg.environments);
   }
-    
+
   if (defaults.bucket.prefix === null) {
     this.error('You need to specify a bucket prefix; bucket: { prefix: \'myproj-\' }')
   }
@@ -95,7 +95,7 @@ exports.process = (bucket, domain, environment) => {
   this.uploadToBucket(bucket, () => {
     this.makeBucketWebsite(bucket, () => {
       this.updateCloudFrontOrigin(defaults.environments[environment], domain, environment, () => {
-        setTimeout( () => {
+        setTimeout(() => {
           this.invalidate(environment, defaults.environments[environment], () => {
             this.next('All operations complete')
             this.succeed()
@@ -141,7 +141,7 @@ exports.destroyBucket = (bucket, complete) => {
 
 exports.emptyBucket = (bucket, complete) => {
   this.next('Emptying bucket: ' + bucket)
-  var deleter = client.deleteDir({Bucket: bucket})
+  var deleter = client.deleteDir({ Bucket: bucket })
   deleter.on('end', () => {
     this.succeed()
     complete()
@@ -150,7 +150,7 @@ exports.emptyBucket = (bucket, complete) => {
 
 exports.deleteBucket = (bucket, complete) => {
   this.next('Deleting bucket: ' + bucket)
-  s3.deleteBucket({Bucket: bucket}, (error, data) => {
+  s3.deleteBucket({ Bucket: bucket }, (error, data) => {
     if (error) {
       this.error('s3.deleteBucket() Error:' + error)
     } else {
@@ -162,12 +162,38 @@ exports.deleteBucket = (bucket, complete) => {
 
 exports.createBucket = (bucket, complete) => {
   this.next('Creating bucket: ' + bucket)
-  s3.createBucket({Bucket: bucket}, (error, data) => {
+  s3.createBucket({ Bucket: bucket }, (error, data) => {
     if (error) {
       this.error('s3.createbucket() Error:' + error)
     } else {
-      this.succeed()
-      complete()
+      var params = {
+        Bucket: bucket,
+        CORSConfiguration: {
+          CORSRules: [
+            {
+              AllowedHeaders: [
+                "*"
+              ],
+              AllowedMethods: [
+                "GET"
+              ],
+              AllowedOrigins: [
+                "*"
+              ],
+              MaxAgeSeconds: 3000
+            }
+          ]
+        },
+        ContentMD5: ""
+      };
+      s3.putBucketCors(params, function (error, data) {
+        if (error) {
+          this.error('s3.putBucketCors() Error:' + error)
+        } else {
+          this.succeed()
+          complete()
+        }
+      });
     }
   })
 }
@@ -230,7 +256,7 @@ exports.updateCloudFrontOrigin = (id, domain, environment, complete) => {
   let updated = false
 
   this.next('Getting ' + environment + ' CloudFront Config with id: ' + id)
-  cloudfront.getDistributionConfig({Id: id}, (error, data) => {
+  cloudfront.getDistributionConfig({ Id: id }, (error, data) => {
     if (error) {
       this.error('cf.getDistributionConfig Error ' + error)
     } else {
